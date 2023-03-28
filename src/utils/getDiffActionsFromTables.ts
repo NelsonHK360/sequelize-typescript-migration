@@ -1,17 +1,17 @@
-import { diff } from "deep-diff";
+import { diff } from 'deep-diff';
 
-import type { Json } from "../constants";
-import sortActions from "./sortActions";
+import type { Json } from '../constants';
+import sortActions from './sortActions';
 
 export interface IAction {
   actionType:
-    | "addColumn"
-    | "addIndex"
-    | "changeColumn"
-    | "createTable"
-    | "dropTable"
-    | "removeColumn"
-    | "removeIndex";
+    | 'addColumn'
+    | 'addIndex'
+    | 'changeColumn'
+    | 'createTable'
+    | 'dropTable'
+    | 'removeColumn'
+    | 'removeIndex';
   tableName: string;
   attributes?: any;
   attributeName?: any;
@@ -23,7 +23,7 @@ export interface IAction {
 
 export default function getDiffActionsFromTables(
   previousStateTables: Json,
-  currentStateTables: Json
+  currentStateTables: Json,
 ) {
   const actions: IAction[] = [];
   const differences = diff(previousStateTables, currentStateTables);
@@ -33,11 +33,11 @@ export default function getDiffActionsFromTables(
   console.log(differences);
 
   differences.forEach((df) => {
-    if (!df.path) throw new Error("Missing path");
+    if (!df.path) throw new Error('Missing path');
 
     switch (df.kind) {
       // add new
-      case "N":
+      case 'N':
         {
           // new table created
           if (df.path.length === 1) {
@@ -49,7 +49,7 @@ export default function getDiffActionsFromTables(
             });
 
             actions.push({
-              actionType: "createTable",
+              actionType: 'createTable',
               tableName,
               attributes: df.rhs.schema,
               options: {},
@@ -60,9 +60,10 @@ export default function getDiffActionsFromTables(
             if (df.rhs.indexes)
               for (const i in df.rhs.indexes) {
                 const copied = JSON.parse(JSON.stringify(df.rhs.indexes[i]));
+                console.log(copied);
 
                 actions.push({
-                  actionType: "addIndex",
+                  actionType: 'addIndex',
                   tableName,
                   depends: [tableName],
                   ...copied,
@@ -75,7 +76,7 @@ export default function getDiffActionsFromTables(
           const tableName = df.path[0];
           const depends = [tableName];
 
-          if (df.path[1] === "schema") {
+          if (df.path[1] === 'schema') {
             // if (df.path.length === 3) - new field
             if (df.path.length === 3) {
               // new field
@@ -83,7 +84,7 @@ export default function getDiffActionsFromTables(
                 depends.push(df.rhs.references.model);
 
               actions.push({
-                actionType: "addColumn",
+                actionType: 'addColumn',
                 tableName,
                 attributeName: df.path[2],
                 options: df.rhs,
@@ -94,7 +95,7 @@ export default function getDiffActionsFromTables(
 
             // if (df.path.length > 3) - add new attribute to column (change col)
             if (df.path.length > 3)
-              if (df.path[1] === "schema") {
+              if (df.path[1] === 'schema') {
                 // new field attributes
                 const options =
                   currentStateTables[tableName].schema[df.path[2]];
@@ -102,7 +103,7 @@ export default function getDiffActionsFromTables(
                 if (options.references) depends.push(options.references.nodel);
 
                 actions.push({
-                  actionType: "changeColumn",
+                  actionType: 'changeColumn',
                   tableName,
                   attributeName: df.path[2],
                   options,
@@ -113,14 +114,14 @@ export default function getDiffActionsFromTables(
           }
 
           // new index
-          if (df.path[1] === "indexes" && df.rhs) {
+          if (df.path[1] === 'indexes' && df.rhs) {
             const tableName = df.path[0];
             const copied = df.rhs
               ? JSON.parse(JSON.stringify(df.rhs))
               : undefined;
             const index = copied;
 
-            index.actionType = "addIndex";
+            index.actionType = 'addIndex';
             index.tableName = tableName;
             index.depends = [tableName];
             actions.push(index);
@@ -130,7 +131,7 @@ export default function getDiffActionsFromTables(
         break;
 
       // drop
-      case "D":
+      case 'D':
         {
           const tableName = df.path[0];
 
@@ -142,19 +143,19 @@ export default function getDiffActionsFromTables(
             });
 
             actions.push({
-              actionType: "dropTable",
+              actionType: 'dropTable',
               tableName,
               depends,
             });
             break;
           }
 
-          if (df.path[1] === "schema") {
+          if (df.path[1] === 'schema') {
             // if (df.path.length === 3) - drop field
             if (df.path.length === 3) {
               // drop column
               actions.push({
-                actionType: "removeColumn",
+                actionType: 'removeColumn',
                 tableName,
                 columnName: df.path[2],
                 depends: [tableName],
@@ -170,7 +171,7 @@ export default function getDiffActionsFromTables(
               if (options.references) depends.push(options.references.model);
 
               actions.push({
-                actionType: "changeColumn",
+                actionType: 'changeColumn',
                 tableName,
                 attributeName: df.path[2],
                 options,
@@ -180,9 +181,9 @@ export default function getDiffActionsFromTables(
             }
           }
 
-          if (df.path[1] === "indexes" && df.lhs) {
+          if (df.path[1] === 'indexes' && df.lhs) {
             actions.push({
-              actionType: "removeIndex",
+              actionType: 'removeIndex',
               tableName,
               fields: df.lhs.fields,
               options: df.lhs.options,
@@ -194,18 +195,18 @@ export default function getDiffActionsFromTables(
         break;
 
       // edit
-      case "E":
+      case 'E':
         {
           const tableName = df.path[0];
           const depends = [tableName];
 
-          if (df.path[1] === "schema") {
+          if (df.path[1] === 'schema') {
             // new field attributes
             const options = currentStateTables[tableName].schema[df.path[2]];
             if (options.references) depends.push(options.references.nodel);
 
             actions.push({
-              actionType: "changeColumn",
+              actionType: 'changeColumn',
               tableName,
               attributeName: df.path[2],
               options,
@@ -216,11 +217,11 @@ export default function getDiffActionsFromTables(
         break;
 
       // array change indexes
-      case "A":
+      case 'A':
         console.log(
-          "[Not supported] Array model changes! Problems are possible. Please, check result more carefully!"
+          '[Not supported] Array model changes! Problems are possible. Please, check result more carefully!',
         );
-        console.log("[Not supported] Difference: ");
+        console.log('[Not supported] Difference: ');
         console.log(JSON.stringify(df, null, 4));
         break;
 
